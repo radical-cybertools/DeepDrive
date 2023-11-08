@@ -5,6 +5,7 @@ import random
 import signal
 import threading as mt
 
+from typing      import Dict, Callable, Any
 from collections import defaultdict
 
 import radical.pilot as rp
@@ -48,10 +49,14 @@ class DeepDrive(object):
 
     # --------------------------------------------------------------------------
     #
-    def register_task_type(self, ttype, on_final, glyph):
+    def register_task_type(self, ttype   : str,
+                                 on_final: Callable       = None,
+                                 glyph   : str            = '+',
+                                 descr   : Dict[str, Any] = None):
 
         self._task_types[ttype] = {'on_final': on_final,
-                                   'glyph'   : glyph}
+                                   'glyph'   : glyph,
+                                   'descr'   : descr or dict()}
 
 
     # --------------------------------------------------------------------------
@@ -178,7 +183,7 @@ class DeepDrive(object):
 
     # --------------------------------------------------------------------------
     #
-    def submit_tasks(self, ttypes, n=1):
+    def submit_tasks(self, ttypes, n=1, descr=None):
         '''
         submit 'n' new tasks of specified type
 
@@ -188,27 +193,25 @@ class DeepDrive(object):
               for a random number (0..3) of seconds.
         '''
 
-        with self._lock:
+        if not descr:
+            descr = dict()
 
-            tds = list()
-            for ttype in ru.as_list(ttypes):
-                for _ in range(n):
+        tds = list()
+        for ttype in ru.as_list(ttypes):
+            for _ in range(n):
 
-                    t_sleep = int(random.randint(0,30) / 10) + 3
-                    result  = int(random.randint(0,10) /  1)
+                uid     = ru.generate_id('%s' % ttype)
+                t_descr = self._task_types[ttype]['descr'] or dict()
+                t_descr['uid'] = uid
 
-                    uid = ru.generate_id('%s' % ttype)
-                    tds.append(rp.TaskDescription({
-                               'uid'          : uid,
-                               'cpu_processes': 1,
-                               'executable'   : '/bin/sh',
-                               'arguments'    : ['-c', 'sleep %s; echo %s' %
-                                                       (t_sleep, result)]}))
+                this_descr = ru.dict_merge(t_descr, descr, ru.OVERWRITE)
 
-            tasks  = self._tmgr.submit_tasks(tds)
+                tds.append(rp.TaskDescription(this_descr))
 
-            for task in tasks:
-                self._register_task(task)
+        tasks = self._tmgr.submit_tasks(tds)
+
+        for task in tasks:
+            self._register_task(task)
 
 
     # --------------------------------------------------------------------------

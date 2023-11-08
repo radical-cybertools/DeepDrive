@@ -22,12 +22,35 @@ class DDMD(rd.DeepDrive):
 
         super().__init__(cores=cores)
 
-        self.register_task_type(self.TASK_TRAIN_MODEL, self.control_train_model, 'T')
-        self.register_task_type(self.TASK_TRAIN_FF,    self.control_train_ff,    't')
-        self.register_task_type(self.TASK_MD_SIM,      self.control_md_sim,      's')
-        self.register_task_type(self.TASK_MD_CHECK,    self.control_md_check,    'c')
-        self.register_task_type(self.TASK_DFT,         self.control_dft,         'd')
+        self.register_task_type(ttype=self.TASK_TRAIN_MODEL,
+                                on_final=self.control_train_model,
+                                glyph='T',
+                                descr={'executable': '/bin/sleep',
+                                       'arguments' : [3]})
 
+        self.register_task_type(ttype=self.TASK_TRAIN_FF,
+                                on_final=self.control_train_ff,
+                                glyph='t',
+                                descr={'executable': '/bin/sleep',
+                                       'arguments' : [3]})
+
+        self.register_task_type(ttype=self.TASK_MD_SIM,
+                                on_final=self.control_md_sim,
+                                glyph='s',
+                                descr={'executable': '/bin/sleep',
+                                       'arguments' : [3]})
+
+        self.register_task_type(ttype=self.TASK_MD_CHECK,
+                                on_final=self.control_md_check,
+                                glyph='c',
+                                descr={'executable': '/bin/sleep',
+                                       'arguments' : [3]})
+
+        self.register_task_type(ttype=self.TASK_DFT,
+                                on_final=self.control_dft,
+                                glyph='d',
+                                descr={'executable': '/bin/sleep',
+                                       'arguments' : [3]})
 
 
     # --------------------------------------------------------------------------
