@@ -16,12 +16,12 @@ class DeepDrive(object):
 
     # --------------------------------------------------------------------------
     #
-    def __init__(self):
+    def __init__(self, cores: int):
 
         self._task_types     = dict()
 
-        self._cores          = 16  # available resources
-        self._cores_used     =  0
+        self._cores          = cores  # available resources
+        self._cores_used     =     0
 
         self._seed           = list()
         self._lock           = mt.RLock()
@@ -29,9 +29,8 @@ class DeepDrive(object):
         self._final_tasks    = list()
 
         # silence RP reporter, use own
-        os.environ['RADICAL_REPORT'] = 'false'
-        self._rep = ru.Reporter('ddmd')
-        self._rep.title('DDMD')
+        self._rep = ru.Reporter('radical.deepdrive')
+        self._rep.title('DeepDrive')
 
         # RP setup
         self._session = rp.Session()
@@ -94,16 +93,27 @@ class DeepDrive(object):
                         '| %4d [%4d]' % (self._cores_used, self._cores))
 
         if task and msg:
-            self._rep.plain(' %-15s: %s\n' % (task.uid, msg))
+            self._rep.plain(' %-25s: %s\n' % (task.uid, msg))
         else:
             if task:
                 msg = task
-            self._rep.plain(' %-15s: %s\n' % (' ', msg))
+            self._rep.plain(' %-25s: %s\n' % (' ', msg))
 
 
     # --------------------------------------------------------------------------
     #
     def seed(self, ttype, n=1):
+
+        # if n == -1: fill remaining cores
+        if n == -1:
+            n = self._cores
+            for _ttype in self._seed:
+                n -= 1  # FIXME: use description
+
+            if n <= 0:
+                self._rep.warn('insufficient cores')
+                # FIXME: warning
+                return
 
         for _ in range(n):
             self._seed.append(ttype)
@@ -120,7 +130,7 @@ class DeepDrive(object):
         assert self._seed
 
         # start first iteration
-        self._submit_tasks(self._seed)
+        self.submit_tasks(self._seed)
 
 
     # --------------------------------------------------------------------------
@@ -168,7 +178,7 @@ class DeepDrive(object):
 
     # --------------------------------------------------------------------------
     #
-    def _submit_tasks(self, ttypes, n=1):
+    def submit_tasks(self, ttypes, n=1):
         '''
         submit 'n' new tasks of specified type
 
@@ -203,12 +213,17 @@ class DeepDrive(object):
 
     # --------------------------------------------------------------------------
     #
-    def _cancel_tasks(self, uids):
+    def cancel_tasks(self, uids=None):
         '''
-        cancel tasks with the given uids, and unregister them
+        cancel tasks with the given uids (default: all), and unregister them
         '''
 
         uids = ru.as_list(uids)
+
+        if not uids:
+            uids = list()
+            for ttype in self._tasks:
+                uids.extend(self._tasks[ttype].keys())
 
         # FIXME: does not work
         self._tmgr.cancel_tasks(uids)
